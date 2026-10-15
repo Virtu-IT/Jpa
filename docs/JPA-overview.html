@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spring Data JPA - Visual Overview</title>
+<style>
+  @page { size: A4; margin: 14mm; }
+  :root {
+    --ink: #1f2937; --muted: #6b7280; --line: #9ca3af;
+    --java: #2563eb; --java-bg: #dbeafe;
+    --db: #ea580c;   --db-bg: #ffedd5;
+    --ok: #16a34a;   --ok-bg: #dcfce7;
+    --bad: #dc2626;  --bad-bg: #fee2e2;
+    --ask: #ca8a04;  --ask-bg: #fef9c3;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.4; margin: 0; }
+  h1 { font-size: 22pt; margin: 0 0 2px; }
+  h2 { font-size: 15pt; margin: 0 0 4px; color: var(--java); border-bottom: 2px solid var(--java-bg); padding-bottom: 3px; }
+  p { margin: 4px 0 8px; }
+  .sub { color: var(--muted); margin-bottom: 14px; }
+  section { page-break-after: always; }
+  section:last-child { page-break-after: auto; }
+  svg { width: 100%; height: auto; display: block; margin: 6px 0; }
+  svg text { font-family: "Segoe UI", Arial, sans-serif; font-size: 12px; fill: var(--ink); }
+  code, .mono { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt; background: #f3f4f6; padding: 0 3px; border-radius: 3px; }
+  table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; }
+  th { background: var(--java); color: #fff; text-align: left; padding: 4px 6px; }
+  td { border-bottom: 1px solid #e5e7eb; padding: 2.5px 6px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .tip { background: var(--ask-bg); border-left: 4px solid var(--ask); padding: 6px 10px; margin: 8px 0; }
+  .legend span { display: inline-block; padding: 1px 8px; border-radius: 4px; margin-right: 8px; font-size: 9pt; }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 ============ -->
+<section>
+  <h1>Spring Data JPA in one picture</h1>
+  <div class="sub">Visual companion to the JPA exercises (chapters 9&ndash;13) &middot; solution project <code>JpaSolution</code></div>
+
+  <h2>1. The layers of the application</h2>
+  <p>A request travels top to bottom; the answer travels back up. Each layer has exactly one job.
+     The exercises replace the <b>bottom two layers</b> (a CSV file and an in-memory list) by a real database.</p>
+  <svg id="layers" viewBox="0 0 760 470"></svg>
+  <div class="legend">
+    <span style="background:var(--java-bg)">Java / Spring</span>
+    <span style="background:var(--db-bg)">Database</span>
+    <span style="background:var(--bad-bg)">Error handling</span>
+  </div>
+  <div class="tip"><b>Rule of thumb:</b> the controller never talks to a repository directly, and entities never leave the service layer as JSON
+     (from chapter 12 on, DTOs and forms are used instead).</div>
+</section>
+
+<!-- ============ PAGE 2 ============ -->
+<section>
+  <h2>2. The database (what the entities must mimic)</h2>
+  <p>Five tables. An arrow points from the table that holds the <b>foreign key</b> to the table it refers to (many &rarr; one).</p>
+  <svg id="er" viewBox="0 0 780 495"></svg>
+
+  <h2 style="margin-top:14px">3. Annotation cheat sheet</h2>
+  <table>
+    <tr><th style="width:26%">Annotation</th><th>Meaning</th><th style="width:32%">Used in the solution</th></tr>
+    <tr><td><code>@Entity</code> <code>@Table(name=..)</code></td><td>This class is stored in that table</td><td>all model classes</td></tr>
+    <tr><td><code>@Id</code> <code>@GeneratedValue(IDENTITY)</code></td><td>Primary key, filled by the database (auto-increment)</td><td><code>Course.courseId</code>, <code>Person.personId</code></td></tr>
+    <tr><td><code>@Column(name=..)</code></td><td>Property &harr; column when the names differ</td><td><code>shortTitle</code> &harr; <code>CSTITLE</code></td></tr>
+    <tr><td><code>@ManyToOne</code> <code>@JoinColumn</code></td><td>Many rows point to one row via a foreign key column</td><td><code>Person.company</code> &rarr; <code>PA_CONO</code></td></tr>
+    <tr><td><code>cascade = PERSIST</code></td><td>Saving the person also inserts a new company</td><td><code>Person.company</code></td></tr>
+    <tr><td><code>@Embeddable</code> / <code>@Embedded</code></td><td>Value object stored in the <i>same</i> table</td><td><code>Address</code> in <code>COMPANIES</code></td></tr>
+    <tr><td><code>@EmbeddedId</code> <code>@MapsId</code></td><td>Composite primary key</td><td><code>Enrolment</code> (<code>E_SNO</code> + <code>ENO</code>)</td></tr>
+  </table>
+</section>
+
+<!-- ============ PAGE 3 ============ -->
+<section>
+  <h2>4. From class to table &mdash; two mappings that need a closer look</h2>
+
+  <p><b>a) One table, two classes</b> &mdash; <code>Address</code> is not an entity: its fields become extra columns of <code>COMPANIES</code>.</p>
+  <svg id="map-company" viewBox="0 0 700 250"></svg>
+
+  <p style="margin-top:14px"><b>b) Composite primary key</b> &mdash; an enrolment is identified by <i>session number + enrolment number in that session</i>.
+     The key columns live in a small <code>@Embeddable</code> class, and <code>@MapsId</code> says that the
+     <code>session</code> association supplies the <code>E_SNO</code> part.</p>
+  <svg id="map-enrol" viewBox="0 0 700 235"></svg>
+
+  <div class="tip"><b>Cancelled?</b> The database stores a letter (<code>'C'</code>) or <code>NULL</code> in <code>SCANCEL</code> / <code>ECANCEL</code>.
+    The solution maps it as a <code>String cancelFlag</code> and derives <code>isCancelled()</code> from it,
+    so queries can simply say <code>where scancel is null</code>.</div>
+</section>
+
+<!-- ============ PAGE 4 ============ -->
+<section>
+  <h2>5. Five ways to query</h2>
+  <p>Start with the simplest one that works. Every repository extends <code>JpaRepository&lt;Entity, IdType&gt;</code>, which already gives
+     <code>findAll()</code>, <code>findById()</code>, <code>save()</code>, <code>deleteById()</code> &hellip; without writing any code.</p>
+  <svg id="ladder" viewBox="0 0 760 250"></svg>
+
+  <table>
+    <tr><th style="width:17%">Kind</th><th style="width:38%">Example from the solution</th><th>What it does</th></tr>
+    <tr><td>Derived query</td><td><code>findByShortTitle(String t)</code><br><code>findByCompanyNameIgnoreCase(String n)</code></td><td>Spring builds the SQL from the method name; <code>CompanyName</code> follows <code>person.company.name</code></td></tr>
+    <tr><td>JPQL <code>@Query</code></td><td><code>select c from Company c where upper(c.name)=upper(:name) and upper(c.address.town)=upper(:town)</code></td><td>Query on <b>classes and properties</b>, not on tables and columns</td></tr>
+    <tr><td>Native <code>@Query</code></td><td><code>select s.* from sessions s join courses c on s.s_cid=c.cid where ... and s.scancel is null</code></td><td>Plain SQL, returns entities; needed for DB-specific SQL</td></tr>
+    <tr><td><code>@NamedQuery</code></td><td><code>Enrolment.findEnrolmentsForPerson</code> on the entity, repository method <code>findEnrolmentsForPerson(personId)</code></td><td>Query defined once on the entity; the repository method name must match</td></tr>
+    <tr><td><code>@Modifying</code> native</td><td><code>update sessions set scancel='C' where sno=:id</code><br><code>update courses set caprice=:price where cid=:id</code></td><td>Changes only <i>one column</i>, returns the number of rows; <b>needs a transaction</b></td></tr>
+  </table>
+
+  <div class="tip"><b>JPQL vs SQL:</b> <code>from Company c where c.address.town = :t</code> (JPQL, property path) &harr;
+    <code>from companies where cotown = ?</code> (SQL, column). Hibernate translates the first into the second.</div>
+</section>
+
+<!-- ============ PAGE 5 ============ -->
+<section>
+  <h2>6. Adding a person (exercise 10.2)</h2>
+  <p>The same service method handles all three cases from the exercise: new company, existing company, no company.</p>
+  <svg id="flow-person" viewBox="0 0 760 515"></svg>
+</section>
+
+<!-- ============ PAGE 6 ============ -->
+<section>
+  <h2>7. Enrolling for a session &mdash; transaction and rollback (exercise 13.5)</h2>
+  <p>All steps run in <b>one transaction</b>. If any check fails, an <code>EnrolException</code> is thrown and the database is put back
+     exactly as it was &mdash; including a person that was inserted in step 1.</p>
+  <svg id="flow-enrol" viewBox="0 0 760 520"></svg>
+
+  <p><b>Testing tip.</b> A test method marked <code>@Transactional</code> is rolled back automatically after it finishes, so the
+     test data never reaches the database and tests stay independent (no <code>@Order</code> needed).
+     Tests that exercise the transaction of the service itself (cancel, enrol) must <i>not</i> be <code>@Transactional</code>,
+     so they clean up after themselves.</p>
+</section>
+
+<!-- ============ PAGE 7 ============ -->
+<section>
+  <h2>8. Which exercise lives where?</h2>
+  <table>
+    <tr><th style="width:12%">Exercise</th><th style="width:32%">Task</th><th>Classes in <code>JpaSolution</code></th></tr>
+    <tr><td>9.1&ndash;9.3</td><td>Dependencies, H2 settings, test the connection, create the DB</td><td><code>pom.xml</code>, <code>application.properties</code>, <code>createH2DB.sql</code>, <code>DataSourceTest</code></td></tr>
+    <tr><td>10.1&ndash;10.2</td><td>Map <code>Course</code>, replace the course repository, DML tests</td><td><code>Course</code>, <code>CourseJpaRepository</code>, <code>AbisCourseService</code>, <code>CourseServiceTest</code></td></tr>
+    <tr><td>10.2</td><td>Map <code>Person</code>, add person (new / existing / no company)</td><td><code>Person</code>, <code>PersonJpaRepository</code>, <code>AbisPersonService</code>, <code>PersonServiceTest</code></td></tr>
+    <tr><td>10.3, 12.3</td><td>Sessions of a course (JPQL, then native without cancelled)</td><td><code>Session</code>, <code>SessionJpaRepository</code>, <code>AbisTrainingService</code></td></tr>
+    <tr><td>11.1</td><td>Company + Address, find by name / name and town</td><td><code>Company</code>, <code>Address</code>, <code>CompanyJpaRepository</code>, <code>CompanyRepositoryTest</code></td></tr>
+    <tr><td>12.1</td><td>PersonDTO, PersonForm, PersonMapper</td><td><code>dto/PersonDTO</code>, <code>form/PersonForm</code>, <code>mapper/PersonMapper</code></td></tr>
+    <tr><td>12.2</td><td>SessionDTO as a record</td><td><code>dto/SessionDTO</code></td></tr>
+    <tr><td>12.4</td><td>Enrolment: composite key, named query, EnrolmentDTO</td><td><code>Enrolment</code>, <code>EnrolmentId</code>, <code>EnrolmentJpaRepository</code>, <code>dto/EnrolmentDTO</code></td></tr>
+    <tr><td>13.1</td><td>PersonAlreadyExistsException works again</td><td><code>AbisPersonService.addPerson</code>, <code>ApiExceptionHandler</code></td></tr>
+    <tr><td>13.2</td><td>Delete a session unless it has enrolments</td><td><code>AbisTrainingService.deleteSession</code>, <code>SessionCanNotBeDeletedException</code></td></tr>
+    <tr><td>13.3</td><td>Change a course price with a modifying native query</td><td><code>CourseJpaRepository.changePrice</code></td></tr>
+    <tr><td>13.4</td><td>Cancel a session with a modifying native query</td><td><code>SessionJpaRepository.cancelSession</code></td></tr>
+    <tr><td>13.5</td><td>Transactional <code>enrolForSession</code> with rollback</td><td><code>AbisTrainingService.enrolForSession</code>, <code>TrainingServiceTest</code></td></tr>
+  </table>
+
+  <h2 style="margin-top:14px">9. What changed compared to the starting project</h2>
+  <table>
+    <tr><th style="width:30%">Before</th><th>After</th></tr>
+    <tr><td><code>MemoryCourseRepository</code> (hard-coded list)</td><td><code>CourseJpaRepository</code> &mdash; an interface, Spring writes the implementation</td></tr>
+    <tr><td><code>FilePersonRepository</code> (CSV file, loops)</td><td><code>PersonJpaRepository</code> &mdash; derived queries</td></tr>
+    <tr><td>Empty <code>addCourse</code> / <code>updateCourse</code> / <code>deleteCourse</code></td><td>Real DML, annotated <code>@Transactional</code>; add and update return the saved object</td></tr>
+    <tr><td>Controllers returned the model classes</td><td>Controllers return DTOs and accept forms; a mapper converts</td></tr>
+    <tr><td>Training service methods returned <code>null</code></td><td>Sessions, enrolments, cancel, delete and enrol are implemented</td></tr>
+    <tr><td>No database</td><td>H2 file database, <code>spring.jpa.show-sql=true</code> shows every generated statement in the console</td></tr>
+  </table>
+  <p style="color:var(--muted);font-size:9pt">Run <code>mvnw test</code> to check the whole solution (45 tests). Start the app and call
+     <code>http://localhost:8085/api/courses/7900</code> to see JSON coming out of the database.</p>
+</section>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const C = {
+  java:{s:"#2563eb",f:"#dbeafe"}, db:{s:"#ea580c",f:"#ffedd5"}, ok:{s:"#16a34a",f:"#dcfce7"},
+  bad:{s:"#dc2626",f:"#fee2e2"}, ask:{s:"#ca8a04",f:"#fef9c3"}, gray:{s:"#9ca3af",f:"#f9fafb"}
+};
+function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+// a text with several lines
+function txt(x,y,lines,opt={}){
+  if(!Array.isArray(lines)) lines=[lines];
+  const lh=opt.lh||15, anchor=opt.anchor||"middle", w=opt.weight||"normal", fill=opt.fill||"";
+  return `<text x="${x}" text-anchor="${anchor}" font-weight="${w}" ${fill?`fill="${fill}"`:""} ${opt.size?`style="font-size:${opt.size}px"`:""}>`+
+    lines.map((l,i)=>`<tspan x="${x}" y="${y+i*lh}">${esc(l)}</tspan>`).join("")+`</text>`;
+}
+function node(x,y,w,h,lines,col="java",opt={}){
+  const c=C[col]; if(!Array.isArray(lines)) lines=[lines];
+  const lh=opt.lh||15, ty=y+h/2-((lines.length-1)*lh)/2+4;
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${c.f}" stroke="${c.s}" stroke-width="1.5" ${opt.dash?'stroke-dasharray="6 4"':''}/>`+
+         txt(x+w/2,ty,lines,{lh,weight:opt.weight});
+}
+function arrow(pts,col="#6b7280",label,lp){
+  const d="M"+pts.map(p=>p.join(",")).join(" L");
+  let s=`<path d="${d}" fill="none" stroke="${col}" stroke-width="1.6" marker-end="url(#ah)"/>`;
+  if(label) s+=txt(lp[0],lp[1],label,{anchor:lp[2]||"middle",weight:"bold",fill:col});
+  return s;
+}
+const DEFS=`<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/></marker></defs>`;
+function setSvg(id,html){document.getElementById(id).innerHTML=DEFS+html;}
+
+// ---- table / class box with row anchors ----
+function tbox(x,y,w,title,rows,col="db",rh=18){
+  const c=C[col], hh=24, h=hh+rows.length*rh;
+  let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="#fff" stroke="${c.s}" stroke-width="1.5"/>`+
+        `<path d="M${x},${y+hh} L${x},${y+6} Q${x},${y} ${x+6},${y} L${x+w-6},${y} Q${x+w},${y} ${x+w},${y+6} L${x+w},${y+hh} Z" fill="${c.s}"/>`+
+        txt(x+w/2,y+16,title,{weight:"bold",fill:"#fff"});
+  rows.forEach((r,i)=>{
+    const ry=y+hh+i*rh;
+    const t=typeof r==="string"?{t:r}:r;
+    s+=`<line x1="${x}" y1="${ry}" x2="${x+w}" y2="${ry}" stroke="#e5e7eb"/>`+
+       txt(x+8,ry+13,t.t,{anchor:"start",weight:t.k?"bold":"normal"});
+    if(t.tag) s+=txt(x+w-8,ry+13,t.tag,{anchor:"end",fill:c.s,weight:"bold",size:10});
+  });
+  return {svg:s,x,y,w,h,cy:i=>y+hh+i*rh+rh/2,r:x+w,b:y+h};
+}
+
+/* ================= 1. layers ================= */
+(function(){
+  let s="";
+  const X=20,W=370,H=48;
+  const layers=[
+    {y:10, col:"gray", t:["Client","Postman / browser / Angular"]},
+    {y:90, col:"java", t:["Controller   @RestController","{Course, Person, Training}ApiController"]},
+    {y:170,col:"java", t:["Service   @Service  @Transactional","Abis{Course, Person, Training}Service"]},
+    {y:250,col:"java", t:["Repository   extends JpaRepository","{Course, Person, Company, Session, Enrolment}JpaRepository"]},
+    {y:330,col:"java", t:["JPA / Hibernate   @Entity","Course · Person · Company · Session · Enrolment"]},
+    {y:410,col:"db",   t:["H2 database","COURSES · PERSONS · COMPANIES · SESSIONS · ENROLMENTS"]},
+  ];
+  layers.forEach((l,i)=>{
+    s+=node(X,l.y,W,H,l.t,l.col,{weight:"bold"});
+    if(i<layers.length-1) s+=arrow([[X+W/2-40,l.y+H],[X+W/2-40,layers[i+1].y]],"#6b7280");
+    if(i<layers.length-1) s+=arrow([[X+W/2+40,layers[i+1].y],[X+W/2+40,l.y+H]],"#9ca3af");
+  });
+  // side notes
+  const NX=430, NW=320;
+  s+=node(NX,84,NW,60,["JSON ⇄ PersonForm (in) / PersonDTO (out)","SessionDTO · EnrolmentDTO · PersonMapper"],"ok",{});
+  s+=arrow([[X+W,114],[NX,114]],"#16a34a");
+  s+=node(NX,164,NW,60,["One transaction per service call","Business rules, DTO mapping, exceptions"],"ok",{});
+  s+=arrow([[X+W,194],[NX,194]],"#16a34a");
+  s+=node(NX,244,NW,60,["findAll(), findById(), save() … for free","+ query methods and @Query"],"ok",{});
+  s+=arrow([[X+W,274],[NX,274]],"#16a34a");
+  s+=node(NX,324,NW,60,["Annotations map classes to tables","Hibernate generates the SQL"],"ok",{});
+  s+=arrow([[X+W,354],[NX,354]],"#16a34a");
+  s+=node(NX,10,NW,48,["ApiExceptionHandler","exception → HTTP 404 / 409 / 400"],"bad",{});
+  s+=arrow([[NX+NW/2,58],[NX+NW/2,84]],"#dc2626");
+  s+=txt(X+W/2-48,76,"request",{anchor:"end",fill:"#6b7280",size:10});
+  s+=txt(X+W/2+48,76,"response",{anchor:"start",fill:"#6b7280",size:10});
+  setSvg("layers",s);
+})();
+
+/* ================= 2. ER ================= */
+(function(){
+  const com=tbox(300,10,210,"COMPANIES",[{t:"CONO",tag:"PK"},"CONAME · COTEL · COVAT","COSTREET · COSTRNO · COTOWNNO","COTOWN · COCOUNTR"]);
+  const crs=tbox(600,10,170,"COURSES",[{t:"CID",tag:"PK"},"CSTITLE","CLTITLE","CDUR","CAPRICE"]);
+  const per=tbox(10,150,210,"PERSONS",[{t:"PNO",tag:"PK"},"PFNAME","PLNAME","PBIRTHDATE","PEMAIL","PPASS","PLANG",{t:"PA_CONO",tag:"FK"}]);
+  const ses=tbox(570,210,200,"SESSIONS",[{t:"SNO",tag:"PK"},"SDATE","SKIND","SINCOMES","SCANCEL",{t:"SINS_PNO",tag:"FK"},{t:"SLOC_CONO",tag:"FK"},{t:"S_CID",tag:"FK"}]);
+  const enr=tbox(290,320,220,"ENROLMENTS",[{t:"E_SNO",tag:"PK FK"},{t:"ENO",tag:"PK"},{t:"E_PNO",tag:"FK"},"EPAY",{t:"E_CONO",tag:"FK"},"ECANCEL"]);
+  let s=com.svg+crs.svg+per.svg+ses.svg+enr.svg;
+  const g="#6b7280";
+  s+=arrow([[per.r,per.cy(7)],[260,per.cy(7)],[260,com.cy(0)],[com.x,com.cy(0)]],g);
+  s+=txt(228,per.cy(7)-5,"PA_CONO",{anchor:"start",size:10,fill:g});
+  s+=arrow([[685,ses.y],[685,crs.b]],g); s+=txt(692,175,"S_CID",{anchor:"start",size:10,fill:g});
+  s+=arrow([[ses.x,ses.cy(6)],[540,ses.cy(6)],[540,com.cy(1)],[com.r,com.cy(1)]],g);
+  s+=txt(536,150,"SLOC_CONO",{anchor:"end",size:10,fill:g});
+  s+=arrow([[640,ses.b],[640,478],[150,478],[150,per.b]],g); s+=txt(646,472,"SINS_PNO (instructor)",{anchor:"start",size:10,fill:g});
+  s+=arrow([[enr.r,enr.cy(0)],[530,enr.cy(0)],[530,ses.cy(0)],[ses.x,ses.cy(0)]],g); s+=txt(520,enr.cy(0)-5,"E_SNO",{anchor:"end",size:10,fill:g});
+  s+=arrow([[enr.x,enr.cy(2)],[70,enr.cy(2)],[70,per.b]],g); s+=txt(76,enr.cy(2)-5,"E_PNO",{anchor:"start",size:10,fill:g});
+  s+=arrow([[400,enr.y],[400,com.b]],g); s+=txt(406,250,"E_CONO",{anchor:"start",size:10,fill:g});
+  s+=txt(130,60,["A person works for","one company (or none)"],{size:11,fill:"#6b7280",lh:14});
+  setSvg("er",s);
+})();
+
+/* ================= 3a. Company / Address ================= */
+(function(){
+  const cls=tbox(10,5,230,"class Company  @Entity",[
+    {t:"int companyNr",tag:"@Id"},"String name","String telephoneNumber","String vatNr",{t:"Address address",tag:"@Embedded"}],"java");
+  const adr=tbox(10,125,230,"class Address  @Embeddable",["String street","String nr","String zipcode","String town","String countryCode"],"java");
+  const tab=tbox(440,5,220,"COMPANIES",[{t:"CONO",tag:"PK"},"CONAME","COTEL","COVAT","COSTREET","COSTRNO","COTOWNNO","COTOWN","COCOUNTR"],"db");
+  let s=cls.svg+adr.svg+tab.svg;
+  const g="#6b7280";
+  const L=(a,i,b,j,col=g)=>arrow([[a.r,a.cy(i)],[b.x,b.cy(j)]],col);
+  s+=L(cls,0,tab,0)+L(cls,1,tab,1)+L(cls,2,tab,2)+L(cls,3,tab,3);
+  for(let k=0;k<5;k++) s+=L(adr,k,tab,4+k,"#16a34a");
+  s+=arrow([[cls.x+cls.w/2,cls.cy(4)+9],[cls.x+cls.w/2,adr.y]],"#16a34a");
+  s+=txt(350,235,"green = fields of the embedded Address",{size:10,fill:"#16a34a"});
+  setSvg("map-company",s);
+})();
+
+/* ================= 3b. Enrolment ================= */
+(function(){
+  const eid=tbox(10,5,280,"class EnrolmentId  @Embeddable",[ "int sessionId","int enrolmentInSession"],"java");
+  const cls=tbox(10,80,280,"class Enrolment  @Entity",[
+    {t:"EnrolmentId id",tag:"@EmbeddedId"},{t:"Session session",tag:"@MapsId @ManyToOne"},{t:"Person enrollee",tag:"@ManyToOne"},
+    "double pricePerDayPayed",{t:"Company enrolmentCompany",tag:"@ManyToOne"},"String cancelFlag"],"java");
+  const tab=tbox(460,35,220,"ENROLMENTS",[{t:"E_SNO",tag:"PK FK"},{t:"ENO",tag:"PK"},{t:"E_PNO",tag:"FK"},"EPAY",{t:"E_CONO",tag:"FK"},"ECANCEL"],"db");
+  let s=eid.svg+cls.svg+tab.svg;
+  const L=(a,i,b,j,col="#6b7280")=>arrow([[a.r,a.cy(i)],[b.x,b.cy(j)]],col);
+  s+=L(eid,0,tab,0,"#16a34a")+L(eid,1,tab,1,"#16a34a");
+  s+=L(cls,1,tab,0)+L(cls,2,tab,2)+L(cls,3,tab,3)+L(cls,4,tab,4)+L(cls,5,tab,5);
+  s+=arrow([[cls.x+30,cls.y],[cls.x+30,eid.b]],"#16a34a");
+  s+=txt(350,215,"green = the composite key",{size:10,fill:"#16a34a"});
+  setSvg("map-enrol",s);
+})();
+
+/* ================= 5. ladder ================= */
+(function(){
+  const steps=[
+    {t:["1. Provided methods","findAll() · findById() · save() · deleteById()"],col:"ok"},
+    {t:["2. Derived query methods","findByShortTitle() · findByEmailAddressIgnoreCase()"],col:"ok"},
+    {t:["3. @Query with JPQL","joins, conditions on properties"],col:"java"},
+    {t:["4. @NamedQuery / native @Query","only when really needed"],col:"ask"},
+    {t:["5. @Modifying native query","UPDATE of single columns"],col:"bad"},
+  ];
+  let s="";
+  steps.forEach((st,i)=>{
+    const x=10+i*40, y=10+i*46, w=500;
+    s+=node(x,y,w,38,st.t,st.col,{weight:"bold",lh:14});
+  });
+  s+=arrow([[680,20],[680,225]],"#6b7280");
+  s+=txt(690,50,["simple","&","safe"],{anchor:"start",size:11,fill:"#16a34a",lh:14});
+  s+=txt(690,200,["flexible","but more","to maintain"],{anchor:"start",size:11,fill:"#dc2626",lh:14});
+  setSvg("ladder",s);
+})();
+
+/* ================= 6. add person flow ================= */
+(function(){
+  let s="";
+  const X=240,W=280,H=40,cx=X+W/2;
+  s+=node(X,5,W,H,["POST /persons","body = PersonForm (flat JSON)"],"gray");
+  s+=arrow([[cx,45],[cx,65]]);
+  s+=node(X,65,W,H,["PersonMapper.toEntity()","→ Person + Company + Address"],"java");
+  s+=arrow([[cx,105],[cx,125]]);
+  s+=node(X,125,W,H,"Email already registered?","ask");
+  s+=arrow([[X+W,145],[570,145]],"#dc2626","yes",[545,138]);
+  s+=node(570,125,180,H,["PersonAlreadyExists-","Exception → HTTP 409"],"bad");
+  s+=arrow([[cx,165],[cx,195]],"#6b7280","no",[cx+8,184,"start"]);
+  s+=node(X,195,W,H,"Person has a company?","ask");
+  s+=arrow([[X,215],[110,215],[110,300]],"#6b7280","no",[130,208,"start"]);
+  s+=node(10,300,200,H,["save person","company = NULL"],"java");
+  s+=arrow([[cx,235],[cx,265]],"#6b7280","yes",[cx+8,254,"start"]);
+  s+=node(X,265,W,H,["Company with same name","AND town in the DB?"],"ask");
+  s+=arrow([[X+W,285],[570,285]],"#6b7280","yes",[545,278]);
+  s+=node(570,265,180,H+4,["link the EXISTING","company (no new row)"],"ok");
+  s+=arrow([[cx,305],[cx,335]],"#6b7280","no",[cx+8,324,"start"]);
+  s+=node(X,335,W,H+4,["NEW company is inserted","together with the person","(cascade = PERSIST)"],"ok",{lh:14});
+  s+=arrow([[cx,379],[cx,410]]);
+  s+=arrow([[110,340],[110,430],[X,430]]);
+  s+=arrow([[660,309],[660,430],[X+W,430]]);
+  s+=node(X,410,W,H,["personRepository.save(person)","→ INSERT"],"java");
+  s+=arrow([[cx,450],[cx,470]]);
+  s+=node(X,470,W,H,["return PersonDTO","(id, name, email, company name + town)"],"gray");
+  s+=txt(10,100,["Case 1: new company","Case 2: existing company","Case 3: no company"],{anchor:"start",size:11,fill:"#6b7280",lh:16});
+  setSvg("flow-person",s);
+})();
+
+/* ================= 7. enrol flow ================= */
+(function(){
+  let s="";
+  s+=node(40,5,440,40,["POST /sessions/{id}/enrolments","body = PersonForm"],"gray");
+  s+=arrow([[260,45],[260,70]]);
+  s+=`<rect x="10" y="70" width="500" height="430" rx="10" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 5"/>`;
+  s+=txt(22,90,"@Transactional(rollbackFor = EnrolException.class)",{anchor:"start",weight:"bold",fill:"#2563eb",size:12});
+  const X=40,W=440,H=44;
+  const steps=[
+    {y:105,t:["1. Person known (by email)?","if not: addPerson() → INSERT person (+ company)"],col:"java"},
+    {y:170,t:["2. Does the session exist?"],col:"ask"},
+    {y:230,t:["3. Is the session cancelled?"],col:"ask"},
+    {y:290,t:["4. Already enrolled (non-cancelled)?"],col:"ask"},
+    {y:355,t:["5. INSERT enrolment","enrolmentNr = highest in this session + 1"],col:"java"},
+  ];
+  steps.forEach((st,i)=>{
+    s+=node(X,st.y,W,H,st.t,st.col,{lh:15});
+    if(i<steps.length-1) s+=arrow([[260,st.y+H],[260,steps[i+1].y]]);
+  });
+  s+=arrow([[260,355+H],[260,435]]);
+  s+=node(X+100,435,240,40,"COMMIT  ✔ all changes saved","ok",{weight:"bold"});
+  // failures
+  s+=node(550,195,200,130,["EnrolException","→ ROLLBACK","","everything done so far","is undone, even the new","person from step 1","(HTTP 400)"],"bad",{lh:15});
+  s+=arrow([[X+W,192],[515,192],[515,235],[550,235]],"#dc2626","no",[500,184,"end"]);
+  s+=arrow([[X+W,252],[550,252]],"#dc2626","yes",[505,245]);
+  s+=arrow([[X+W,312],[515,312],[515,290],[550,290]],"#dc2626","yes",[500,305,"end"]);
+  setSvg("flow-enrol",s);
+})();
+</script>
+</body>
+</html>
