@@ -110,7 +110,7 @@
 
 <!-- ============ PAGE 5 ============ -->
 <section>
-  <h2>6. Adding a person (exercise 10.2)</h2>
+  <h2>6. Adding a person (exercise 11.2)</h2>
   <p>The same service method handles all three cases from the exercise: new company, existing company, no company.</p>
   <svg id="flow-person" viewBox="0 0 760 515"></svg>
 </section>
@@ -135,8 +135,8 @@
     <tr><th style="width:12%">Exercise</th><th style="width:32%">Task</th><th>Classes in <code>JpaSolution</code></th></tr>
     <tr><td>9.1&ndash;9.3</td><td>Dependencies, H2 settings, test the connection, create the DB</td><td><code>pom.xml</code>, <code>application.properties</code>, <code>createH2DB.sql</code>, <code>DataSourceTest</code></td></tr>
     <tr><td>10.1&ndash;10.2</td><td>Map <code>Course</code>, replace the course repository, DML tests</td><td><code>Course</code>, <code>CourseJpaRepository</code>, <code>AbisCourseService</code>, <code>CourseServiceTest</code></td></tr>
-    <tr><td>10.2</td><td>Map <code>Person</code>, add person (new / existing / no company)</td><td><code>Person</code>, <code>PersonJpaRepository</code>, <code>AbisPersonService</code>, <code>PersonServiceTest</code></td></tr>
-    <tr><td>10.3, 12.3</td><td>Sessions of a course (JPQL, then native without cancelled)</td><td><code>Session</code>, <code>SessionJpaRepository</code>, <code>AbisTrainingService</code></td></tr>
+    <tr><td>11.2</td><td>Map <code>Person</code>, add person (new / existing / no company)</td><td><code>Person</code>, <code>PersonJpaRepository</code>, <code>AbisPersonService</code>, <code>PersonServiceTest</code></td></tr>
+    <tr><td>11.3, 12.3</td><td>Sessions of a course (JPQL, then native without cancelled)</td><td><code>Session</code>, <code>SessionJpaRepository</code>, <code>AbisTrainingService</code></td></tr>
     <tr><td>11.1</td><td>Company + Address, find by name / name and town</td><td><code>Company</code>, <code>Address</code>, <code>CompanyJpaRepository</code>, <code>CompanyRepositoryTest</code></td></tr>
     <tr><td>12.1</td><td>PersonDTO, PersonForm, PersonMapper</td><td><code>dto/PersonDTO</code>, <code>form/PersonForm</code>, <code>mapper/PersonMapper</code></td></tr>
     <tr><td>12.2</td><td>SessionDTO as a record</td><td><code>dto/SessionDTO</code></td></tr>
@@ -210,7 +210,7 @@ function tbox(x,y,w,title,rows,col="db",rh=18){
 /* ================= 1. layers ================= */
 (function(){
   let s="";
-  const X=20,W=370,H=48;
+  const X=20,W=400,H=48;
   const layers=[
     {y:10, col:"gray", t:["Client","Postman / browser / Angular"]},
     {y:90, col:"java", t:["Controller   @RestController","{Course, Person, Training}ApiController"]},
@@ -225,7 +225,7 @@ function tbox(x,y,w,title,rows,col="db",rh=18){
     if(i<layers.length-1) s+=arrow([[X+W/2+40,layers[i+1].y],[X+W/2+40,l.y+H]],"#9ca3af");
   });
   // side notes
-  const NX=430, NW=320;
+  const NX=450, NW=300;
   s+=node(NX,84,NW,60,["JSON ⇄ PersonForm (in) / PersonDTO (out)","SessionDTO · EnrolmentDTO · PersonMapper"],"ok",{});
   s+=arrow([[X+W,114],[NX,114]],"#16a34a");
   s+=node(NX,164,NW,60,["One transaction per service call","Business rules, DTO mapping, exceptions"],"ok",{});
@@ -243,7 +243,7 @@ function tbox(x,y,w,title,rows,col="db",rh=18){
 
 /* ================= 2. ER ================= */
 (function(){
-  const com=tbox(300,10,210,"COMPANIES",[{t:"CONO",tag:"PK"},"CONAME · COTEL · COVAT","COSTREET · COSTRNO · COTOWNNO","COTOWN · COCOUNTR"]);
+  const com=tbox(300,10,226,"COMPANIES",[{t:"CONO",tag:"PK"},"CONAME · COTEL · COVAT","COSTREET · COSTRNO · COTOWNNO","COTOWN · COCOUNTR"]);
   const crs=tbox(600,10,170,"COURSES",[{t:"CID",tag:"PK"},"CSTITLE","CLTITLE","CDUR","CAPRICE"]);
   const per=tbox(10,150,210,"PERSONS",[{t:"PNO",tag:"PK"},"PFNAME","PLNAME","PBIRTHDATE","PEMAIL","PPASS","PLANG",{t:"PA_CONO",tag:"FK"}]);
   const ses=tbox(570,210,200,"SESSIONS",[{t:"SNO",tag:"PK"},"SDATE","SKIND","SINCOMES","SCANCEL",{t:"SINS_PNO",tag:"FK"},{t:"SLOC_CONO",tag:"FK"},{t:"S_CID",tag:"FK"}]);
